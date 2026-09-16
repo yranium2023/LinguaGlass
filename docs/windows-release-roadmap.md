@@ -64,6 +64,10 @@ Windows AI 代码直接耦合进主会话流程。
 - 固定 Windows App SDK 与实验包版本，不使用浮动依赖。
 - 记录当前系统构建号、CPU/NPU、音频设备和依赖版本，作为测试环境元数据。
 
+2026-09-16 实测：稳定版 `Microsoft.WindowsAppSDK 2.4.0` 不包含
+`Microsoft.Windows.AI.Speech`；当前 PoC 固定使用 `2.4.1-Experimental`。因此 P0 即使功能
+通过，正式 Release 仍需单独决定是否等待 Speech 进入稳定通道。
+
 当前机器检查结果：Windows 构建 `26200.7623`，Windows SDK
 `10.0.26100.0` 已存在；只有 .NET 运行时，没有 .NET SDK。
 
@@ -240,4 +244,3 @@ P0.2 完成条件：真实播放中的英文可以经
 5. 完成 90 秒对比测试和 30 分钟稳定性测试。
 6. 形成 `windows-ai-poc.md`，作出 Go/No-Go 决策。
 7. Go 后才进入统一 ASR Backend；No-Go 时不修改主识别链路。
-
