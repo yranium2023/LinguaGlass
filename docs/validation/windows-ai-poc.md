@@ -3,8 +3,8 @@
 ## Status
 
 P0.1 packaged application build, signing, installation, upgrade, and visible launch are complete.
-The installed app reports `NotReady`; user-approved model preparation and microphone recognition
-remain to be validated.
+The installed app completed user-approved model preparation and now reports `Ready`. Microphone
+partial/final recognition and repeated start/stop remain to be validated.
 
 ## Environment
 
@@ -15,6 +15,8 @@ remain to be validated.
 - Windows App SDK tested stable package: `2.4.0`
 - Windows App SDK PoC package: `2.4.1-Experimental`
 - Target: `net8.0-windows10.0.26100.0`, x64, self-contained
+- CPU: Intel Core Ultra 7 270K Plus, 24 physical cores, 3.7 GHz reported maximum, 36 MB L3
+- Installed speech component: `Microsoft.Windows.AI.Speech.Preview.NPU 1.2607.112.0` (about 915 MB)
 
 ## Findings
 
@@ -38,6 +40,13 @@ remain to be validated.
 8. Installed PoC `0.1.0.2` returned `ready-state=NotReady` in about 1.2 seconds. The system does not
    classify the API as unsupported or user-disabled; the system speech model still needs explicit
    user-approved preparation.
+9. Model preparation triggered a Windows Update download and installed the NPU speech component.
+   `EnsureReadyAsync()` returned `Failure`, but the immediate authoritative `GetReadyState()` check
+   returned `Ready`. The production backend must always re-check final readiness and must not treat
+   the asynchronous result alone as the final state.
+10. Microsoft documents that non-preinstalled speech models are delivered on demand through Windows
+    Update and that preparation reports `Installing`, `Caching`, `Loading`, and completion progress.
+    The next PoC build subscribes to `SpeechRecognitionModelProgress`; this change compiles cleanly.
 
 ## Package identity and capabilities
 
@@ -61,8 +70,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File native\windows-ai-poc\sign-a
 
 - [x] App starts from its installed package identity (`0.1.0.2`) and shows a responsive window.
 - [x] Initial Windows AI Speech ready state is visible (`NotReady`).
-- [ ] Model preparation asks for user consent before `EnsureReadyAsync()`.
-- [ ] System model preparation completes or produces a classified, actionable failure.
+- [x] Model preparation asks for user consent before `EnsureReadyAsync()`.
+- [x] System model preparation installs the component and final readiness becomes `Ready`; the
+      inconsistent asynchronous `Failure` result is recorded as an experimental API issue.
 - [ ] Default microphone starts and emits partial transcript.
 - [ ] Spoken phrase produces final transcript.
 - [ ] Stop and restart work three consecutive times.
@@ -72,3 +82,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File native\windows-ai-poc\sign-a
 Do not start production backend integration yet. After the checklist passes, implement
 `SpeechAudioProvider` and the explicit 16 kHz, signed 16-bit, mono PCM contract for the existing Rust
 WASAPI Loopback pipeline.
+
+## Primary references
+
+- [Speech Recognition with Windows AI APIs](https://learn.microsoft.com/en-us/windows/ai/apis/speech-recognition)
+- [SpeechRecognitionModel.EnsureReadyAsync](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.windows.ai.speech.speechrecognitionmodel.ensurereadyasync)
+- [SpeechRecognitionModelProgress](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.windows.ai.speech.speechrecognitionmodelprogress)

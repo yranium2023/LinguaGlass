@@ -28,6 +28,8 @@ internal sealed class MainForm : Form
     private SpeechRecognitionModel? _model;
     private StreamingRecognition? _recognition;
     private AIFeatureReadyState? _lastReadyState;
+    private SpeechRecognitionModelProgressStatus? _lastModelProgressStatus;
+    private int _lastModelProgressBucket = -1;
     private readonly string _statusLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "LinguaGlass",
@@ -133,7 +135,11 @@ internal sealed class MainForm : Form
         SetBusy(true, "正在准备 Windows AI Speech 模型…");
         try
         {
-            var result = await SpeechRecognitionModel.EnsureReadyAsync();
+            _lastModelProgressStatus = null;
+            _lastModelProgressBucket = -1;
+            var operation = SpeechRecognitionModel.EnsureReadyAsync();
+            operation.Progress = (_, progress) => PostModelProgress(progress);
+            var result = await operation;
             Append("backend-status", $"ensure-ready={result.Status}");
             await CheckReadyStateAsync();
         }
@@ -226,6 +232,29 @@ internal sealed class MainForm : Form
         BeginInvoke(() => Append(kind, text));
     }
 
+    private void PostModelProgress(SpeechRecognitionModelProgress progress)
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        BeginInvoke(() =>
+        {
+            var normalized = Math.Clamp(progress.Progress, 0, 1);
+            var percentage = (int)Math.Round(normalized * 100);
+            _readyState.Text = $"Windows AI Speech：{Describe(progress.Status)} · {percentage}%";
+
+            var bucket = percentage / 5;
+            if (progress.Status != _lastModelProgressStatus || bucket != _lastModelProgressBucket)
+            {
+                _lastModelProgressStatus = progress.Status;
+                _lastModelProgressBucket = bucket;
+                Append("backend-status", $"model-progress; status={progress.Status}; progress={normalized:F3}");
+            }
+        });
+    }
+
     private void Append(string kind, string text)
     {
         var line = $"{DateTimeOffset.Now:O}  {kind,-14} {text}{Environment.NewLine}";
@@ -274,5 +303,15 @@ internal sealed class MainForm : Form
         AIFeatureReadyState.NotSupportedOnCurrentSystem => "当前系统不支持",
         AIFeatureReadyState.DisabledByUser => "已被用户禁用",
         _ => state.ToString()
+    };
+
+    private static string Describe(SpeechRecognitionModelProgressStatus status) => status switch
+    {
+        SpeechRecognitionModelProgressStatus.Installing => "正在下载并安装",
+        SpeechRecognitionModelProgressStatus.Caching => "正在缓存",
+        SpeechRecognitionModelProgressStatus.Loading => "正在加载",
+        SpeechRecognitionModelProgressStatus.CompletedSuccess => "准备完成",
+        SpeechRecognitionModelProgressStatus.CompletedFailure => "准备失败",
+        _ => status.ToString()
     };
 }
