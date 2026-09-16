@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "LinguaGlass",
+  "version": "0.1.0",
+  "identifier": "com.linguaglass.desktop",
+  "build": {
+    "beforeDevCommand": "node scripts/frontend.cjs dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "node scripts/frontend.cjs build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "LinguaGlass",
+        "width": 1240,
+        "height": 840,
+        "minWidth": 860,
+        "minHeight": 640,
+        "transparent": true
+      },
+      {
+        "label": "overlay",
+        "title": "LinguaGlass Subtitles",
+        "url": "index.html?overlay=1",
+        "width": 900,
+        "height": 330,
+        "minWidth": 480,
+        "minHeight": 280,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'"
+    }
+  },
+  "bundle": { "active": false }
+}

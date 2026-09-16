@@ -1,0 +1,5 @@
+# Optional Windows CUDA 12 runtime, installed into the project virtual environment.
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.26.0.51
+nvidia-cuda-runtime-cu12==12.9.79
+nvidia-cuda-nvrtc-cu12==12.9.86
