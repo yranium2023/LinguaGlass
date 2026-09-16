@@ -3,6 +3,11 @@
 Target: Apple Silicon, macOS 26, Xcode 26. This first build validates local
 English transcription only. It does not send Apple Speech text to DeepSeek.
 
+The operating system and Xcode are separate installations. macOS 26 with Xcode
+16 still exposes Swift 6.0 and cannot compile SpeechAnalyzer. Verify that
+`xcrun swift --version` reports Swift 6.2 or newer and that
+`xcrun --sdk macosx --show-sdk-version` reports 26.x.
+
 ## Build
 
 ```bash
