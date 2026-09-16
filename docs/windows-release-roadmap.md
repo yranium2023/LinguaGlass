@@ -1,8 +1,8 @@
 # LinguaGlass Windows Release Roadmap
 
-状态：生效  
+状态：生效（Windows AI Speech 已作 No-Go，不进入首个公开版）  
 当前里程碑：GitHub Release `v0.1.0`  
-当前最高优先级：P0 — Windows AI Speech 的 WASAPI 流式 PoC
+当前最高优先级：Distil 后端产品化、模型管理器与 MSIX Release
 
 ## 发布完成的唯一标准
 
@@ -12,8 +12,8 @@
 1. 一台没有 Node、Python、Rust、Visual Studio、Git 和 LinguaGlass 开发环境的
    Windows 11 电脑从 GitHub Releases 下载 LinguaGlass。
 2. 用户完成安装和首次启动，全程不需要打开终端。
-3. 应用自动检测 Windows AI；可用时直接准备并使用系统模型。
-4. Windows AI 不可用时，应用说明原因，并允许用户按需下载 Distil 模型。
+3. 应用检测本地 Distil 模型；没有模型时明确提示并允许用户按需下载。
+4. 用户可以选择轻量、均衡或高精度 Distil 模型，并看到下载、校验和磁盘占用状态。
 5. 用户输入 DeepSeek API Key，选择麦克风或系统音频后，可以获得连续的英文识别、
    学术中文翻译和悬浮字幕。
 6. 安装、运行、停止、升级和卸载过程中不出现开发工具、CMD/PowerShell 黑窗、
@@ -44,8 +44,8 @@ Windows AI 代码直接耦合进主会话流程。
 
 当前发布阻塞项：
 
-- 没有 Windows AI Speech Bridge。
-- 没有 `systemAIModels` 权限和带包身份的测试应用。
+- Windows AI Speech Bridge 已完成隔离 PoC，但因模型创建失败和约 915 MB 的系统组件开销，
+  明确不进入 `v0.1.0` 主流程。
 - `src-tauri/tauri.conf.json` 中 `bundle.active` 仍为 `false`。
 - 当前运行依赖项目内 Python 虚拟环境，不是可分发程序。
 - 没有 MSIX、签名、Release CI 和干净 Windows 验收。
@@ -120,20 +120,26 @@ P0.2 完成条件：真实播放中的英文可以经
 - 系统模型准备流程可以转化为普通用户可理解的交互。
 - Bridge 的分发和 API 版本风险有明确处理方案。
 
-若任一条件失败，则 Windows AI 不进入主会话链路。记录 No-Go 原因，继续以 Distil
-作为发布后端，或把 Windows AI 限定到已通过的输入模式，不用主工程承担未验证风险。
+### P0 No-Go 结论（2026-09-16）
 
-## P1：统一 ASR Backend
+本机 Windows AI Speech 模型通过 Windows Update 按需下载，安装组件约 915 MB；最终
+`GetReadyState()` 为 `Ready`，但 `TryCreateAsync()` 在已安装的模型上仍失败，返回
+`COMException 0x8007007E`（模块无法加载）。执行提供程序初始化也只完成编译验证，未形成
+稳定的可分发识别链路。基于磁盘占用、实验 API 风险和当前运行失败，Windows AI 不进入
+`v0.1.0`，PoC 与证据保留在 `native/windows-ai-poc/` 和 `docs/validation/`，仅作未来重新评估
+的隔离实验。
 
-- 从业务流程中抽离 Distil，实现 `Auto / Windows AI / Distil-Whisper`。
-- `Auto` 优先 Windows AI；初始化或运行失败时回退 Distil。
+## P1：Distil ASR Backend 与模型管理
+
+- 将现有 Distil 逻辑抽离为稳定的发布后端；首个公开版默认且唯一启用 `Distil-Whisper`。
 - 本地没有 Distil 时才提示下载，不允许静默下载大型模型。
-- 两种后端共享状态机和事件协议，但只显示各自适用的高级参数。
-- 为后端选择、能力探测、运行时回退和状态转换增加测试。
+- 统一 ASR 状态机和事件协议，为未来重新接入 Windows AI 保留后端边界，但不在首个公开版
+  暴露未验证的 Windows AI 选项。
+- 为模型能力探测、下载、校验、取消、删除和状态转换增加测试。
 
 完成条件：翻译和 UI 不需要通过条件分支理解后端的内部实现。
 
-## P2：正式 Windows AI Bridge
+## P2：Windows AI Bridge（延期，不阻断 v0.1.0）
 
 - 保留 React + Tauri + Rust 主架构。
 - Rust 负责音频、Bridge 生命周期、超时、重启、日志和字幕事件。
@@ -141,7 +147,8 @@ P0.2 完成条件：真实播放中的英文可以经
 - 统一 `partial / final / error / backend-status` 事件及错误码。
 - Sidecar 使用无控制台窗口方式启动，异常退出可以被检测并友好恢复。
 
-完成条件：DeepSeek 翻译层无法区分文本来自 Windows AI 还是 Whisper。
+完成条件：只有在 Windows AI API 进入稳定通道、模型创建和系统音频流式识别通过独立验收后，
+才重新打开本阶段；不作为 `v0.1.0` 发布条件。
 
 ## P3：实时翻译 Pipeline
 
@@ -158,7 +165,7 @@ P0.2 完成条件：真实播放中的英文可以经
 - 安装包不携带 Distil 模型。
 - 展示模型大小、状态、磁盘位置、下载和校验进度。
 - 支持按需下载、取消、删除、切换、断点/失败恢复和损坏校验。
-- Windows AI 用户可以保持零 Whisper 模型安装。
+- 用户可以只安装所选 Distil 模型；安装包本身不携带模型。
 
 完成条件：全新用户不会因为缺少模型或半成品下载进入无法恢复状态。
 
@@ -218,10 +225,10 @@ P0.2 完成条件：真实播放中的英文可以经
 在无开发环境的 Windows 11 真机或 VM 上逐步验证：
 
 1. 从 GitHub 下载并安装。
-2. 首次启动并检测/准备 Windows AI。
-3. 保存 DeepSeek Key。
-4. 使用麦克风和系统音频分别完成识别、翻译和悬浮字幕。
-5. 验证 Windows AI 不可用时的 Distil 下载、取消、重试和使用。
+2. 首次启动并检测本地 Distil 模型。
+3. 按需下载并校验所选 Distil 模型。
+4. 保存 DeepSeek Key。
+5. 使用麦克风和系统音频分别完成识别、翻译和悬浮字幕。
 6. 验证重启、升级、卸载、网络中断和设备变化。
 
 整个流程不允许用户打开终端或安装开发工具。
