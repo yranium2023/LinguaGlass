@@ -1,6 +1,6 @@
 param(
     [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')]
-    [string]$Version = '0.1.0.1'
+    [string]$Version = '0.1.0.2'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,7 +14,7 @@ $toolStateRoot = Join-Path $repoRoot '.tools\windows-ai-poc'
 $nugetPackages = Join-Path $toolStateRoot 'nuget-packages'
 $nugetHttpCache = Join-Path $toolStateRoot 'nuget-http-cache'
 $dotnetCliHome = Join-Path $toolStateRoot 'dotnet-cli-home'
-$buildTemp = Join-Path $toolStateRoot 'temp'
+$buildTemp = Join-Path $toolStateRoot "temp-$PID"
 
 if (!(Test-Path -LiteralPath $dotnet)) {
     throw 'Missing local .NET SDK. Install it into .tools\dotnet before building the PoC.'

@@ -9,7 +9,7 @@
   <Identity
     Name="LinguaGlass.WindowsAI.Poc"
     Publisher="CN=LinguaGlass Development"
-    Version="0.1.0.1" />
+    Version="0.1.0.2" />
 
   <Properties>
     <DisplayName>LinguaGlass Windows AI Speech PoC</DisplayName>

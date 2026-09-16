@@ -3,7 +3,8 @@
 ## Status
 
 P0.1 packaged application build, signing, installation, upgrade, and visible launch are complete.
-Interactive model readiness and microphone recognition are awaiting user validation.
+The installed app reports `NotReady`; user-approved model preparation and microphone recognition
+remain to be validated.
 
 ## Environment
 
@@ -34,6 +35,9 @@ Interactive model readiness and microphone recognition are awaiting user validat
    a 15-second timeout.
 7. PoC build state is redirected to the repository-local ignored `.tools/windows-ai-poc` directory
    so future restores do not silently consume the system drive.
+8. Installed PoC `0.1.0.2` returned `ready-state=NotReady` in about 1.2 seconds. The system does not
+   classify the API as unsupported or user-disabled; the system speech model still needs explicit
+   user-approved preparation.
 
 ## Package identity and capabilities
 
@@ -55,8 +59,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File native\windows-ai-poc\sign-a
 
 ## Interactive P0.1 checklist
 
-- [x] App starts from its installed package identity (`0.1.0.1`) and shows a responsive window.
-- [ ] Initial Windows AI Speech ready state is visible.
+- [x] App starts from its installed package identity (`0.1.0.2`) and shows a responsive window.
+- [x] Initial Windows AI Speech ready state is visible (`NotReady`).
 - [ ] Model preparation asks for user consent before `EnsureReadyAsync()`.
 - [ ] System model preparation completes or produces a classified, actionable failure.
 - [ ] Default microphone starts and emits partial transcript.

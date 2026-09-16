@@ -28,6 +28,11 @@ internal sealed class MainForm : Form
     private SpeechRecognitionModel? _model;
     private StreamingRecognition? _recognition;
     private AIFeatureReadyState? _lastReadyState;
+    private readonly string _statusLogPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "LinguaGlass",
+        "WindowsAIPoc",
+        "status.log");
 
     public MainForm()
     {
@@ -71,6 +76,8 @@ internal sealed class MainForm : Form
         layout.Controls.Add(actions, 0, 2);
         layout.Controls.Add(_transcript, 0, 3);
         Controls.Add(layout);
+
+        Append("backend-status", "session-start");
 
         _checkButton.Click += async (_, _) => await CheckReadyStateAsync();
         _prepareButton.Click += async (_, _) => await PrepareModelAsync();
@@ -221,9 +228,23 @@ internal sealed class MainForm : Form
 
     private void Append(string kind, string text)
     {
-        _transcript.AppendText($"{DateTimeOffset.Now:HH:mm:ss.fff}  {kind,-14} {text}{Environment.NewLine}");
+        var line = $"{DateTimeOffset.Now:O}  {kind,-14} {text}{Environment.NewLine}";
+        _transcript.AppendText(line);
         _transcript.SelectionStart = _transcript.TextLength;
         _transcript.ScrollToCaret();
+
+        if (kind is "backend-status" or "error")
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_statusLogPath)!);
+                File.AppendAllText(_statusLogPath, line);
+            }
+            catch
+            {
+                // Diagnostics must never interrupt model or microphone validation.
+            }
+        }
     }
 
     private void SetBusy(bool busy, string? message = null)

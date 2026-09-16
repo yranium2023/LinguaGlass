@@ -20,7 +20,7 @@ Microsoft promotes Speech to a stable channel.
 From the repository root:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File native\windows-ai-poc\build.ps1 -Version 0.1.0.1
+powershell -NoProfile -ExecutionPolicy Bypass -File native\windows-ai-poc\build.ps1 -Version 0.1.0.2
 ```
 
 The first restore requires network access. The build publishes a self-contained x64 executable and
@@ -42,6 +42,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File native\windows-ai-poc\sign-a
 Every changed package must use a higher four-part version than the installed package. The build
 writes the exact package path to ignored artifact metadata, which the signing script consumes; the
 installer rejects equal-version content changes and accidental downgrades before deployment.
+
+The PoC writes only backend lifecycle and error records to
+`%LOCALAPPDATA%\LinguaGlass\WindowsAIPoc\status.log`. Partial/final transcript text is intentionally
+kept in memory and is never written to this diagnostic file.
 
 The certificate is added to the current user's trusted root store and the machine's Trusted People
 store for local PoC testing. It has only the code-signing EKU, is not exportable, is not a production
