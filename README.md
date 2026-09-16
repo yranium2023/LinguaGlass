@@ -1,6 +1,6 @@
 # LinguaGlass
 
-跨平台实时学术翻译桌面应用 · 第一阶段开发原型。
+跨平台实时学术翻译桌面应用 · Windows Release candidate。
 
 **音频留在本地，只有最终英文文本发送到 DeepSeek。**
 
@@ -15,12 +15,12 @@
 - 本地 JSONL 会话记录与 TXT / Markdown / JSON / SRT 完整会话导出。
 - 有界缓冲和清晰的失败提示，断网/缺少密钥不停止英文识别。
 
-这是原型代码，**尚未通过真实麦克风到中文的端到端验收**。请参阅
-[验证记录](docs/validation.md)，不要把界面示例误认为真实识别结果。
+Windows 首个公开版本使用 Distil-Whisper 本地识别；Windows AI Speech
+实验接口不属于当前发行版。请参阅[验证记录](docs/validation.md)了解当前限制。
 
 ## Windows 启动
 
-**此工作目录已经装好开发依赖并下载默认模型。** 双击根目录
+**开发目录启动方式。** 双击根目录
 `Start-LinguaGlass.cmd` 可启动当前开发构建，界面资源已内置，不依赖 Vite 服务。
 在偏好设置中填写 DeepSeek API Key 即可进行翻译联调。当前 CPU 大模型速度还需要优化。
 
@@ -52,6 +52,19 @@ npm run desktop
 4K 屏幕可在顶部「文字大小」选择更大字号，浮动字幕同步放大。
 没有密钥也可以识别英文。前端浏览器预览 `npm run dev` 不提供真实音频/翻译能力。
 
+## 构建 Windows 安装包
+
+Release 安装包会携带 Python ASR 运行环境，但不携带任何 Distil 模型；模型在
+首次使用时由用户选择并下载到应用数据目录。安装包生成在
+`src-tauri/target/release/bundle/msi/`。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1
+```
+
+脚本最后会打印 MSI 的 SHA-256 校验值。干净 Windows 11 验收时只需要分发该
+MSI，不需要 Node、Python、Rust 或开发工具。
+
 ## 验证
 
 ```powershell
@@ -82,6 +95,6 @@ Key 不写入日志、localStorage、配置文件或 Python 进程。
 
 双输入混合、暂停恢复、模型下载管理、字幕透明度/
 位置锁定、翻译重试、macOS ScreenCaptureKit、Linux PipeWire、Python sidecar 打包，
-以及至少 2 小时的稳定性和真实课堂延迟测试。当前不生成安装包。
+以及至少 2 小时的稳定性和真实课堂延迟测试。
 
 架构与已核实的官方接口来源：[architecture.md](docs/architecture.md)。

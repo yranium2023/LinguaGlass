@@ -33,6 +33,7 @@ type Environment = {
   system_audio_supported: boolean;
   models?: string[];
   cuda_available?: boolean;
+  model_dir?: string;
   message?: string;
 };
 const domains: Record<string, string> = {
@@ -717,6 +718,9 @@ export function App() {
               移除密钥
             </button>
           </div>
+          {environment?.model_dir && (
+            <p className="help">模型目录：{environment.model_dir}</p>
+          )}
           <p className="help">
             密钥保存在系统凭据管理器。没有密钥时，英文识别仍可使用。
           </p>

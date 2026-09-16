@@ -162,15 +162,14 @@ pub fn begin(app: AppHandle, shared: Arc<Shared>, config: Config) -> Result<(), 
     if control.is_some() {
         return Err("请等待当前会话结束".into());
     }
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .to_path_buf();
+    let root = runtime_root(&app);
     let python = root.join(if cfg!(windows) {
         ".venv/Scripts/python.exe"
     } else {
         ".venv/bin/python"
     });
+    let model_dir = app_data_dir(&app)?.join("models");
+    std::fs::create_dir_all(&model_dir).map_err(|_| "无法创建模型目录")?;
     if !python.is_file() {
         return Err("尚未安装本地识别环境，请先运行 scripts/setup.ps1".into());
     }
@@ -199,7 +198,7 @@ pub fn begin(app: AppHandle, shared: Arc<Shared>, config: Config) -> Result<(), 
         json!({"type":"status", "state":"INITIALIZING", "message":"正在加载本地语音模型…"}),
     );
     tauri::async_runtime::spawn(async move {
-        let result = run(&app, &shared, config, python, root, stop_rx).await;
+        let result = run(&app, &shared, config, python, root, model_dir, stop_rx).await;
         if let Err(message) = result {
             emit(&app, &shared, json!({"type":"error", "message": message}));
         }
@@ -216,6 +215,7 @@ async fn run(
     config: Config,
     python: PathBuf,
     root: PathBuf,
+    model_dir: PathBuf,
     mut stop_rx: watch::Receiver<bool>,
 ) -> Result<(), String> {
     let mut command = Command::new(python);
@@ -223,6 +223,7 @@ async fn run(
         .arg("-u")
         .arg(root.join("asr-sidecar/main.py"))
         .args(["--model", &config.asr_model, "--device", &config.compute])
+        .args(["--model-dir", model_dir.to_string_lossy().as_ref()])
         .arg("--domain")
         .arg(&config.domain)
         .arg("--glossary")
@@ -434,4 +435,22 @@ async fn run(
     } else {
         Ok(())
     }
+}
+
+fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|_| "无法访问应用数据目录".into())
+}
+
+fn runtime_root(app: &AppHandle) -> PathBuf {
+    if let Ok(resource) = app.path().resource_dir() {
+        if resource.join("asr-sidecar").join("main.py").is_file() {
+            return resource;
+        }
+    }
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf()
 }

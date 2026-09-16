@@ -46,9 +46,9 @@ Windows AI 代码直接耦合进主会话流程。
 
 - Windows AI Speech Bridge 已完成隔离 PoC，但因模型创建失败和约 915 MB 的系统组件开销，
   明确不进入 `v0.1.0` 主流程。
-- `src-tauri/tauri.conf.json` 中 `bundle.active` 仍为 `false`。
-- 当前运行依赖项目内 Python 虚拟环境，不是可分发程序。
-- 没有 MSIX、签名、Release CI 和干净 Windows 验收。
+- 当前 MSI 已可生成；仍需在干净 Windows 11 环境完成安装和端到端验收。
+- 当前构建将 Python ASR 运行环境随安装包发布；Distil 模型仍按需下载。
+- MSIX、签名、Release CI 和干净 Windows 验收仍待完成。
 - 当前仓库没有可用的提交基线，现有文件全部显示为未跟踪。
 
 ## P0：Windows AI Speech WASAPI 流式 PoC
@@ -244,10 +244,9 @@ P0.2 完成条件：真实播放中的英文可以经
 
 ## 当前立即执行的顺序
 
-1. 审查现有文件并建立首个安全 Git 基线。
-2. 安装 .NET SDK 和 Windows App SDK 所需工具，锁定版本。
-3. 创建隔离的 packaged Windows AI PoC，实现模型状态与麦克风识别。
-4. 将现有 WASAPI Loopback PCM 接入 PoC。
-5. 完成 90 秒对比测试和 30 分钟稳定性测试。
-6. 形成 `windows-ai-poc.md`，作出 Go/No-Go 决策。
-7. Go 后才进入统一 ASR Backend；No-Go 时不修改主识别链路。
+1. 在干净 Windows 11 环境安装 MSI，验证首次启动不需要开发工具。
+2. 验证模型检测、按需下载、取消/失败恢复和应用数据目录权限。
+3. 验证麦克风与 WASAPI Loopback 的英文识别、DeepSeek 翻译和悬浮字幕。
+4. 补齐安装、升级、卸载、日志脱敏和异常提示验收记录。
+5. 建立 GitHub Actions 的前端、Rust、Python 和 Windows Release 构建任务。
+6. 明确签名方案后再生成 GitHub Release `v0.1.0`。

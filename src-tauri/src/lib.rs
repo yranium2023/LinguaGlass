@@ -161,22 +161,26 @@ async fn export_session(
 #[tauri::command]
 async fn environment(window: WebviewWindow) -> Result<Value, String> {
     main_only(&window)?;
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .to_path_buf();
+    let root = runtime_root(&window);
     let python = root.join(if cfg!(windows) {
         ".venv/Scripts/python.exe"
     } else {
         ".venv/bin/python"
     });
-    let mut result = json!({"python_ready":false,"system_audio_supported":cfg!(windows),"models":[],"cuda_available":false});
+    let model_dir = window
+        .path()
+        .app_data_dir()
+        .map_err(|_| "无法访问模型目录")?
+        .join("models");
+    std::fs::create_dir_all(&model_dir).map_err(|_| "无法创建模型目录")?;
+    let mut result = json!({"python_ready":false,"system_audio_supported":cfg!(windows),"models":[],"cuda_available":false,"model_dir":model_dir});
     if !python.is_file() {
         return Ok(result);
     }
     let mut command = tokio::process::Command::new(python);
     command
         .arg(root.join("asr-sidecar/main.py"))
+        .args(["--model-dir", model_dir.to_string_lossy().as_ref()])
         .arg("--doctor")
         .kill_on_drop(true);
     #[cfg(windows)]
@@ -211,9 +215,13 @@ async fn download_model(window: WebviewWindow, model: String) -> Result<(), Stri
         }
     }
     let _reset = Reset;
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap();
+    let root = runtime_root(&window);
+    let model_dir = window
+        .path()
+        .app_data_dir()
+        .map_err(|_| "无法访问模型目录")?
+        .join("models");
+    std::fs::create_dir_all(&model_dir).map_err(|_| "无法创建模型目录")?;
     let mut command = tokio::process::Command::new(root.join(if cfg!(windows) {
         ".venv/Scripts/python.exe"
     } else {
@@ -221,6 +229,7 @@ async fn download_model(window: WebviewWindow, model: String) -> Result<(), Stri
     }));
     command
         .arg(root.join("asr-sidecar/main.py"))
+        .args(["--model-dir", model_dir.to_string_lossy().as_ref()])
         .args(["--download-model", "--model", &model])
         .kill_on_drop(true);
     #[cfg(windows)]
@@ -233,6 +242,18 @@ async fn download_model(window: WebviewWindow, model: String) -> Result<(), Stri
         return Err("模型下载失败，请检查网络后重试；已下载的缓存会保留".into());
     }
     Ok(())
+}
+
+fn runtime_root(window: &WebviewWindow) -> std::path::PathBuf {
+    if let Ok(resource) = window.path().resource_dir() {
+        if resource.join("asr-sidecar").join("main.py").is_file() {
+            return resource;
+        }
+    }
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf()
 }
 pub fn run() {
     tauri::Builder::default()

@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="distil-large-v3")
     parser.add_argument("--model-path")
+    parser.add_argument("--model-dir", help="Directory used for downloaded Whisper models")
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--domain", default="")
     parser.add_argument("--glossary", default="")
@@ -31,7 +32,7 @@ def main():
             import ctranslate2
             for model in ['distil-large-v3','distil-medium.en','distil-small.en']:
                 try:
-                    download_model(model, local_files_only=True)
+                    download_model(model, cache_dir=args.model_dir, local_files_only=True)
                     models.append(model)
                 except Exception:
                     pass
@@ -44,7 +45,7 @@ def main():
         return 1 if missing else 0
     if args.download_model:
         from faster_whisper.utils import download_model
-        print(download_model(args.model))
+        print(download_model(args.model, cache_dir=args.model_dir))
         return 0
     sys.stdout.reconfigure(encoding="utf-8")
     emit = Emitter(sys.stdout)
@@ -65,7 +66,7 @@ def main():
             emit,
             args.model,
             args.device,
-            args.model_path,
+            args.model_path or _local_model_path(args.model, args.model_dir),
             ", ".join(hotwords)[:2000],
             args.silence_ms,
             args.max_segment_seconds,
@@ -93,6 +94,17 @@ def main():
             engine.close()
         emit("stopped")
     return 0
+
+
+def _local_model_path(model: str, model_dir: str | None) -> str | None:
+    """Resolve a downloaded model without allowing inference to fetch it."""
+    if not model_dir:
+        return None
+    from faster_whisper.utils import download_model
+    try:
+        return str(download_model(model, cache_dir=model_dir, local_files_only=True))
+    except Exception as exc:
+        raise RuntimeError("model is not installed") from exc
 
 
 if __name__ == "__main__":
