@@ -161,6 +161,27 @@ async fn export_session(
 #[tauri::command]
 async fn environment(window: WebviewWindow) -> Result<Value, String> {
     main_only(&window)?;
+    #[cfg(target_os = "macos")]
+    {
+        let bridge = macos_bridge_path(&window);
+        let mut result = json!({"python_ready":false,"system_audio_supported":true,
+            "models":[],"cuda_available":false,"backend":"apple_speech"});
+        if !bridge.is_file() { return Ok(result); }
+        let output = tokio::time::timeout(std::time::Duration::from_secs(15),
+            tokio::process::Command::new(bridge).args(["--doctor", "--locale", "en-US"]).output()).await;
+        if let Ok(Ok(output)) = output {
+            if let Ok(info) = serde_json::from_slice::<Value>(&output.stdout) {
+                let available = info["available"].as_bool().unwrap_or(false);
+                result["python_ready"] = json!(available);
+                if available && info["installed"].as_bool().unwrap_or(false) {
+                    result["models"] = json!(["apple-speech-en-US"]);
+                }
+            }
+        }
+        return Ok(result);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
     let root = runtime_root(&window);
     let python = root.join(if cfg!(windows) {
         ".venv/Scripts/python.exe"
@@ -197,10 +218,26 @@ async fn environment(window: WebviewWindow) -> Result<Value, String> {
         }
     }
     Ok(result)
+    }
 }
 #[tauri::command]
 async fn download_model(window: WebviewWindow, model: String) -> Result<(), String> {
     main_only(&window)?;
+    #[cfg(target_os = "macos")]
+    {
+        if !["apple-speech-en-US", "distil-large-v3"].contains(&model.as_str()) {
+            return Err("Mac 版当前仅支持 Apple 英文语音模型".into());
+        }
+        let output = tokio::time::timeout(std::time::Duration::from_secs(3600),
+            tokio::process::Command::new(macos_bridge_path(&window))
+                .args(["--prepare", "--locale", "en-US"]).output()).await
+            .map_err(|_| "Apple 语音模型准备超时")?
+            .map_err(|_| "无法启动 Apple Speech Bridge")?;
+        if !output.status.success() { return Err("Apple 语音模型准备失败".into()); }
+        return Ok(());
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
     if !["distil-large-v3", "distil-medium.en", "distil-small.en"].contains(&model.as_str()) {
         return Err("未知识别模型".into());
     }
@@ -242,6 +279,18 @@ async fn download_model(window: WebviewWindow, model: String) -> Result<(), Stri
         return Err("模型下载失败，请检查网络后重试；已下载的缓存会保留".into());
     }
     Ok(())
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn macos_bridge_path(window: &WebviewWindow) -> std::path::PathBuf {
+    if let Ok(current) = std::env::current_exe() {
+        if let Some(parent) = current.parent() {
+            let bundled = parent.join("LinguaGlassSpeechBridge");
+            if bundled.is_file() { return bundled; }
+        }
+    }
+    runtime_root(window).join("native/macos-speech-bridge/.build/release/LinguaGlassSpeechBridge")
 }
 
 fn runtime_root(window: &WebviewWindow) -> std::path::PathBuf {

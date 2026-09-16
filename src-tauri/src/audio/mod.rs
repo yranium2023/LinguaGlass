@@ -25,7 +25,7 @@ pub enum InputMode {
 }
 impl InputMode {
     pub fn validate(self) -> Result<(), String> {
-        if self == Self::System && !cfg!(target_os = "windows") {
+        if self == Self::System && !cfg!(any(target_os = "windows", target_os = "macos")) {
             Err("当前平台暂不支持系统音频采集".into())
         } else {
             Ok(())
@@ -34,6 +34,23 @@ impl InputMode {
 }
 pub fn list(mode: InputMode) -> Result<Vec<AudioDevice>, String> {
     mode.validate()?;
+    #[cfg(target_os = "macos")]
+    {
+        return Ok(vec![AudioDevice {
+            id: match mode {
+                InputMode::System => "macos-system-default",
+                InputMode::Microphone => "macos-microphone-default",
+            }
+            .into(),
+            name: match mode {
+                InputMode::System => "Mac 系统音频",
+                InputMode::Microphone => "Mac 默认麦克风",
+            }
+            .into(),
+        }]);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
     let host = cpal::default_host();
     let devices = if mode == InputMode::System {
         host.output_devices()
@@ -51,6 +68,7 @@ pub fn list(mode: InputMode) -> Result<Vec<AudioDevice>, String> {
             })
         })
         .collect())
+    }
 }
 pub trait AudioCaptureBackend {
     fn devices(&self) -> Result<Vec<AudioDevice>, String>;

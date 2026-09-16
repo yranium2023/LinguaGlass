@@ -163,16 +163,15 @@ pub fn begin(app: AppHandle, shared: Arc<Shared>, config: Config) -> Result<(), 
         return Err("请等待当前会话结束".into());
     }
     let root = runtime_root(&app);
-    let python = root.join(if cfg!(windows) {
-        ".venv/Scripts/python.exe"
-    } else {
-        ".venv/bin/python"
-    });
+    #[cfg(target_os = "macos")]
+    let python = macos_bridge_path(&app);
+    #[cfg(not(target_os = "macos"))]
+    let python = root.join(if cfg!(windows) { ".venv/Scripts/python.exe" } else { ".venv/bin/python" });
     let model_dir = app_data_dir(&app)?.join("models");
     std::fs::create_dir_all(&model_dir).map_err(|_| "无法创建模型目录")?;
-    if !python.is_file() {
-        return Err("尚未安装本地识别环境，请先运行 scripts/setup.ps1".into());
-    }
+    if !python.is_file() { return Err(if cfg!(target_os = "macos") {
+        "Apple Speech Bridge 尚未构建，请运行 scripts/build-macos.sh"
+    } else { "尚未安装本地识别环境，请先运行 scripts/setup.ps1" }.into()); }
     let session_id = uuid::Uuid::new_v4().to_string();
     let dir = app
         .path()
@@ -218,6 +217,10 @@ async fn run(
     model_dir: PathBuf,
     mut stop_rx: watch::Receiver<bool>,
 ) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    return run_apple(app, shared, config, python, stop_rx).await;
+    #[cfg(not(target_os = "macos"))]
+    {
     let mut command = Command::new(python);
     command
         .arg("-u")
@@ -435,12 +438,72 @@ async fn run(
     } else {
         Ok(())
     }
+    }
 }
 
 fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
         .map_err(|_| "无法访问应用数据目录".into())
+}
+
+#[cfg(target_os = "macos")]
+async fn run_apple(
+    app: &AppHandle,
+    shared: &Arc<Shared>,
+    config: Config,
+    bridge: PathBuf,
+    mut stop_rx: watch::Receiver<bool>,
+) -> Result<(), String> {
+    let mode = match config.input_mode { audio::InputMode::System => "system", _ => "microphone" };
+    let mut child = Command::new(bridge)
+        .args(["--mode", mode, "--locale", "en-US"])
+        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null())
+        .kill_on_drop(true).spawn().map_err(|_| "无法启动 Apple Speech Bridge")?;
+    let mut input = child.stdin.take().ok_or("无法连接 Apple Speech Bridge")?;
+    let mut lines = BufReader::new(child.stdout.take().ok_or("无法读取 Apple Speech Bridge")?).lines();
+    let mut listening = false;
+    loop {
+        tokio::select! {
+            _ = stop_rx.changed() => {
+                let _ = input.write_all(b"stop\n").await;
+                let _ = input.shutdown().await;
+            }
+            line = lines.next_line() => {
+                let line = match line {
+                    Ok(Some(line)) if line.len() < 262144 => line,
+                    Ok(None) => break,
+                    _ => return Err("Apple Speech Bridge 通信失败".into()),
+                };
+                let event: Value = match serde_json::from_str(&line) { Ok(value) => value, Err(_) => continue };
+                match event["type"].as_str().unwrap_or("") {
+                    "ready" => {
+                        listening = true;
+                        emit(app, shared, json!({"type":"status", "state":"LISTENING"}));
+                        emit(app, shared, json!({"type":"warning", "message":"Mac 测试版仅进行本地英文识别，不会发送文本到翻译服务。"}));
+                    }
+                    "asr_final" | "asr_partial" | "level" | "warning" | "model_status" => emit(app, shared, event),
+                    "error" => { emit(app, shared, event); return Err("Apple 本地语音识别无法继续".into()); }
+                    "stopped" => break,
+                    _ => {}
+                }
+            }
+        }
+    }
+    if !listening { let _ = child.kill().await; return Err("Apple Speech 未能开始识别".into()); }
+    let _ = child.wait().await;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn macos_bridge_path(app: &AppHandle) -> PathBuf {
+    if let Ok(current) = std::env::current_exe() {
+        if let Some(parent) = current.parent() {
+            let bundled = parent.join("LinguaGlassSpeechBridge");
+            if bundled.is_file() { return bundled; }
+        }
+    }
+    runtime_root(app).join("native/macos-speech-bridge/.build/release/LinguaGlassSpeechBridge")
 }
 
 fn runtime_root(app: &AppHandle) -> PathBuf {

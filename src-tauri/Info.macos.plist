@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>LinguaGlass 使用麦克风在本机生成实时英文字幕。</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>LinguaGlass 使用 Apple 本地语音识别生成实时字幕。</string>
+  <key>NSScreenCaptureUsageDescription</key>
+  <string>LinguaGlass 使用屏幕与系统音频录制权限捕获正在播放的音频，不保存屏幕画面。</string>
+</dict>
+</plist>

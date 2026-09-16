@@ -18,6 +18,41 @@
 Windows 首个公开版本使用 Distil-Whisper 本地识别；Windows AI Speech
 实验接口不属于当前发行版。请参阅[验证记录](docs/validation.md)了解当前限制。
 
+## macOS 26 Apple Speech 测试版
+
+Mac 测试版复用现有 React/Tauri 界面，使用 Apple `SpeechAnalyzer` 和
+`SpeechTranscriber` 在设备本地完成英文识别，不需要 Python、Whisper 或 Distil。
+当前目标环境为 Apple Silicon、macOS 26、Xcode 26。
+
+首次构建前安装 Xcode 26、Node.js、pnpm 和 Rust，然后运行：
+
+```bash
+git clone https://github.com/yranium2023/LinguaGlass.git
+cd LinguaGlass
+corepack enable
+pnpm install --frozen-lockfile
+chmod +x scripts/build-macos.sh
+./scripts/build-macos.sh
+```
+
+生成的 DMG 位于：
+
+```text
+src-tauri/target/release/bundle/dmg/
+```
+
+也可以先单独验证原生 Bridge：
+
+```bash
+swift build --package-path native/macos-speech-bridge -c release
+native/macos-speech-bridge/.build/release/LinguaGlassSpeechBridge --doctor --locale en-US
+native/macos-speech-bridge/.build/release/LinguaGlassSpeechBridge --prepare --locale en-US
+```
+
+第一次使用麦克风时需要授予麦克风权限；使用系统音频时需要在“隐私与安全性”中授予
+“屏幕与系统音频录制”权限。当前测试版只验证本地英文识别，不会把 Apple Speech
+结果发送到外部翻译服务。
+
 ## Windows 启动
 
 **开发目录启动方式。** 双击根目录

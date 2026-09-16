@@ -1988,6 +1988,17 @@ input[type="range"]:hover::-webkit-slider-thumb {
   gap: 0.4rem;
   margin: 0.55rem 0 0.7rem;
 }
+
+.static-field {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+}
 .model-manager-row {
   display: flex;
   align-items: center;

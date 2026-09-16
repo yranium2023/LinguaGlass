@@ -11,5 +11,8 @@ __pycache__/
 *.log
 .tools/
 artifacts/
+src-tauri/binaries/*
+!src-tauri/binaries/.gitkeep
+native/macos-speech-bridge/.build/
 **/bin/
 **/obj/

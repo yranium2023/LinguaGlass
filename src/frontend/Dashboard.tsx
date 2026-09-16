@@ -34,6 +34,7 @@ type Environment = {
   models?: string[];
   cuda_available?: boolean;
   model_dir?: string;
+  backend?: "apple_speech" | "distil";
   message?: string;
 };
 const domains: Record<string, string> = {
@@ -91,8 +92,10 @@ export function App() {
     ["queued", "translating", "final"].includes(r.status),
   ).length;
   const warning = notice || (view.message !== dismissed ? view.message : "");
-  const modelMissing =
-    environment?.models && !environment.models.includes(config.asr_model);
+  const appleSpeech = environment?.backend === "apple_speech";
+  const modelMissing = appleSpeech
+    ? environment?.models && !environment.models.includes("apple-speech-en-US")
+    : environment?.models && !environment.models.includes(config.asr_model);
   const startReason = !desktop
     ? "请在桌面应用中使用"
     : !environment
@@ -257,7 +260,8 @@ export function App() {
     try {
       await invoke("download_model", { model });
       setEnvironment(await invoke<Environment>("environment"));
-      setConfig((current) => ({ ...current, asr_model: model }));
+      if (model.startsWith("distil-"))
+        setConfig((current) => ({ ...current, asr_model: model }));
       setNotice(`${model} 已下载并设为当前识别模型。`);
     } catch (error) {
       setNotice(String(error));
@@ -505,14 +509,17 @@ export function App() {
               <div>
                 <span>英文识别</span>
                 <strong>
-                  {config.asr_model.replace("distil-", "Distil ")}
+                  {appleSpeech
+                    ? "Apple Speech"
+                    : config.asr_model.replace("distil-", "Distil ")}
                 </strong>
               </div>
               <div>
                 <span>中文翻译</span>
                 <strong>
-                  DeepSeek{" "}
-                  {config.translation_model.endsWith("pro") ? "Pro" : "Flash"}
+                  {appleSpeech
+                    ? "测试版暂未启用"
+                    : `DeepSeek ${config.translation_model.endsWith("pro") ? "Pro" : "Flash"}`}
                 </strong>
               </div>
             </div>
@@ -749,21 +756,23 @@ export function App() {
             </label>
             <label>
               识别模型
-              <GlassSelect
-                ariaLabel="识别模型"
-                disabled={active}
-                value={config.asr_model}
-                onChange={(value) => update("asr_model", value)}
-                options={asrModels.map((model) => ({
-                  value: model.value,
-                  label: `${model.value}${
-                    environment?.models &&
-                    !environment.models.includes(model.value)
-                      ? " · 未下载"
-                      : ""
-                  }`,
-                }))}
-              />
+              {appleSpeech ? (
+                <div className="static-field">Apple Speech · English (US)</div>
+              ) : (
+                <GlassSelect
+                  ariaLabel="识别模型"
+                  disabled={active}
+                  value={config.asr_model}
+                  onChange={(value) => update("asr_model", value)}
+                  options={asrModels.map((model) => ({
+                    value: model.value,
+                    label: `${model.value}${
+                      environment?.models && !environment.models.includes(model.value)
+                        ? " · 未下载" : ""
+                    }`,
+                  }))}
+                />
+              )}
             </label>
             <label>
               自然停顿断句 · {config.asr_silence_seconds.toFixed(1)} 秒
@@ -832,7 +841,7 @@ export function App() {
                 调大可能提高最终文本准确率，但会增加计算量和定稿延迟。
               </span>
             </label>
-            <label>
+            {!appleSpeech && <label>
               计算设备
               <GlassSelect
                 ariaLabel="计算设备"
@@ -850,7 +859,7 @@ export function App() {
                   },
                 ]}
               />
-            </label>
+            </label>}
             <label>
               翻译模型
               <GlassSelect
@@ -914,7 +923,15 @@ export function App() {
           </div>
           <p className="field-label">本地模型与计算环境</p>
           <div className="model-manager">
-            {asrModels.map((model) => {
+            {appleSpeech ? (
+              <div className="model-manager-row">
+                <span><strong>Apple Speech</strong><small>系统管理 · 完全本地 · English (US)</small></span>
+                <button className="button accent" disabled={!desktop || active || downloadingModel !== null || (environment?.models?.includes("apple-speech-en-US") ?? false)}
+                  onClick={() => void downloadAsrModel("apple-speech-en-US") }>
+                  {environment?.models?.includes("apple-speech-en-US") ? <><Check size={16} /> 已就绪</> : downloadingModel ? "正在准备…" : "准备模型"}
+                </button>
+              </div>
+            ) : asrModels.map((model) => {
               const installed =
                 environment?.models?.includes(model.value) ?? false;
               const downloading = downloadingModel === model.value;
