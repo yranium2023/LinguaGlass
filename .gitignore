@@ -15,4 +15,9 @@ src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
 native/macos-speech-bridge/.build/
 **/bin/
+!src-tauri/src/bin/
+!src-tauri/src/bin/linguaglass-service.rs
 **/obj/
+native/macos-app/.build/
+native/macos-app/Resources/AppIcon*.png
+native/macos-app/Resources/AppIcon*.icns

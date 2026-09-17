@@ -1,8 +1,8 @@
 mod audio;
-mod secrets;
+pub mod secrets;
 mod session;
 mod storage;
-mod translation;
+pub mod translation;
 
 use audio::AudioCaptureBackend;
 

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>zh_CN</string>
+    <key>CFBundleDisplayName</key>
+    <string>LinguaGlass</string>
+    <key>CFBundleExecutable</key>
+    <string>LinguaGlassMac</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIconMono</string>
+    <key>CFBundleIconName</key>
+    <string>AppIconMono</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.linguaglass.native</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>LinguaGlass</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.2.1</string>
+    <key>CFBundleVersion</key>
+    <string>4</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>LinguaGlass 使用麦克风在本机识别实时英文字幕。</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>LinguaGlass 使用系统音频录制权限在本机识别课程、视频和会议声音；不会捕获屏幕画面。</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+</dict>
+</plist>

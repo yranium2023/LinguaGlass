@@ -1,8 +1,9 @@
 # LinguaGlass
 
-跨平台实时学术翻译桌面应用 · Windows Release candidate。
+跨平台实时学术翻译桌面应用。目前提供 Windows `v0.1.0` 与原生 macOS 26
+Apple Speech 测试版 `v0.2.1`。
 
-**音频留在本地，只有最终英文文本发送到 DeepSeek。**
+**音频始终留在本地，只有识别出的英文文本会发送到 DeepSeek。**
 
 ## 当前交付
 
@@ -18,40 +19,67 @@
 Windows 首个公开版本使用 Distil-Whisper 本地识别；Windows AI Speech
 实验接口不属于当前发行版。请参阅[验证记录](docs/validation.md)了解当前限制。
 
-## macOS 26 Apple Speech 测试版
+## macOS 26 原生测试版
 
-Mac 测试版复用现有 React/Tauri 界面，使用 Apple `SpeechAnalyzer` 和
-`SpeechTranscriber` 在设备本地完成英文识别，不需要 Python、Whisper 或 Distil。
-当前目标环境为 Apple Silicon、macOS 26、Xcode 26。
+macOS `v0.2.1` 使用原生 SwiftUI 界面、Apple `SpeechAnalyzer` / `SpeechTranscriber`
+和 Core Audio Process Tap。英文识别完全在本机运行，不需要 Python、Whisper、
+Distil、Node.js 或浏览器前端；DeepSeek 提供增量中文翻译。
 
-首次构建前安装 Xcode 26、Node.js、pnpm 和 Rust，然后运行：
+### 下载与系统要求
+
+从 [GitHub Releases](https://github.com/yranium2023/LinguaGlass/releases) 下载：
+
+```text
+LinguaGlass-0.2.1-macOS-arm64-Test.zip
+```
+
+当前测试包要求：
+
+- Apple Silicon Mac（M1、M2、M3、M4 或后续芯片）；
+- macOS 26 或更高版本；
+- 使用系统音频时授予“系统音频录制”权限；
+- 使用麦克风时授予麦克风权限。
+
+此测试包没有 Apple Developer ID 与公证票据。解压并拖入“应用程序”后，第一次启动请
+右键 LinguaGlass 选择“打开”；如果仍被阻止，请在“系统设置 → 隐私与安全性”中选择
+“仍要打开”。不需要也不建议关闭 Gatekeeper。
+
+### macOS 功能
+
+- 系统音频或指定麦克风输入、输入增益与实时电平；
+- Apple Speech 英文临时结果与最终结果；
+- DeepSeek 流式、增量翻译，领域、上下文和课程术语表设置；
+- API Key 启动时从 macOS 钥匙串读取一次，运行期间只保留内存副本；
+- 可拖动、可缩放、可收起的双语悬浮字幕；
+- 浅色/深色外观、八种强调色与界面字号；
+- 会话记录跟随最新，以及 Markdown、TXT、JSON 导出；
+- 音频不上传，英文原文与中文翻译保存在本机。
+
+### 从源码构建 macOS 版本
+
+需要 Apple Silicon、macOS 26、完整 Xcode 26 和 Rust。运行：
 
 ```bash
 git clone https://github.com/yranium2023/LinguaGlass.git
 cd LinguaGlass
-corepack enable
-pnpm install --frozen-lockfile
-chmod +x scripts/build-macos.sh
-./scripts/build-macos.sh
+chmod +x scripts/build-native-macos-app.sh
+./scripts/build-native-macos-app.sh
 ```
 
-生成的 DMG 位于：
+生成的应用位于：
 
 ```text
-src-tauri/target/release/bundle/dmg/
+dist/LinguaGlass.app
 ```
 
-也可以先单独验证原生 Bridge：
+原生构建脚本会编译 SwiftUI 主程序和 Rust 翻译服务，生成完整 ICNS 图标，并对测试包执行
+临时签名。没有 Developer ID 时，接收者仍需按上面的首次启动步骤手动确认。
+
+也可以只编译 Swift 主程序：
 
 ```bash
-swift build --package-path native/macos-speech-bridge -c release
-native/macos-speech-bridge/.build/release/LinguaGlassSpeechBridge --doctor --locale en-US
-native/macos-speech-bridge/.build/release/LinguaGlassSpeechBridge --prepare --locale en-US
+swift build --package-path native/macos-app -c release
 ```
-
-第一次使用麦克风时需要授予麦克风权限；使用系统音频时需要在“隐私与安全性”中授予
-“屏幕与系统音频录制”权限。当前测试版只验证本地英文识别，不会把 Apple Speech
-结果发送到外部翻译服务。
 
 ## Windows 启动
 
@@ -181,7 +209,7 @@ Key 不写入日志、localStorage、配置文件或 Python 进程。
 ## 后续阶段
 
 双输入混合、暂停恢复、模型下载管理、字幕透明度/
-位置锁定、翻译重试、macOS ScreenCaptureKit、Linux PipeWire、Python sidecar 打包，
+位置锁定、翻译重试、macOS 正式签名与公证、Linux PipeWire、Python sidecar 打包，
 以及至少 2 小时的稳定性和真实课堂延迟测试。
 
 架构与已核实的官方接口来源：[architecture.md](docs/architecture.md)。

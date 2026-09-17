@@ -48,6 +48,7 @@ impl Sse {
         Ok(data)
     }
 }
+#[derive(Clone)]
 pub struct DeepSeekTranslationService {
     client: reqwest::Client,
 }
